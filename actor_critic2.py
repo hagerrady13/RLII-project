@@ -1,4 +1,10 @@
 # actor_critic: section 13.5
+"""
+visualize the policies by two of them
+1. run AC on RandomWalk
+2. Add tile coding on RandomWalk
+3. Check SARSA
+"""
 from env import RandomWalkEnv
 import torch
 import torch.nn as nn
