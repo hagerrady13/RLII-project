@@ -40,7 +40,7 @@ class SarsaAgent():
         current_tiles = self.__convert_state(x_s)
         self.weights[action, current_tiles] += self.step_size * td_error
 
-    def epsilonGreedyPolicy(self, q_values, eps=0.1):
+    def epsilonGreedyPolicy(self, q_values, eps=0.0):
         num_actions = env.action_count
         action_probs = np.ones(num_actions, dtype = float) * eps / num_actions
         best_action = self.__argmax(q_values)
@@ -77,11 +77,13 @@ def agent():
 
     all_rewards = []
     all_steps = []
+    all_td_errors = []
 
     for run in range(n_runs):
         print("Run: ", run)
         episodic_reward = np.zeros(num_episodes)
         episodic_lengths = np.zeros(num_episodes)
+        episodic_TDerror = np.zeros(num_episodes)
 
         seed = 999 * run
         np.random.seed(seed)
@@ -101,13 +103,13 @@ def agent():
                 # Take a step
                 reward, next_state, done = env.env_step(action)
                 if done:
-                    td_target = reward
+                    td_error = reward - action_value
                 else:
                     q_values_next = sarsa_agent.forward(next_state)
                     next_action, next_action_value = sarsa_agent.epsilonGreedyPolicy(q_values_next)
-                    td_target = reward + (gamma * next_action_value) - action_value
+                    td_error = reward + (gamma * next_action_value) - action_value
 
-                sarsa_agent.backward(td_target, state, action)
+                sarsa_agent.backward(td_error, state, action)
 
                 state = next_state
                 action = next_action
@@ -115,12 +117,14 @@ def agent():
 
                 episodic_reward[i_episode] += reward
                 episodic_lengths[i_episode] += 1
+                episodic_TDerror[i_episode] += td_error
 
                 if done:
                     break
 
         all_rewards.append(episodic_reward)
         all_steps.append(episodic_lengths)
+        all_td_errors.append(episodic_TDerror)
 
     fig, ax = plt.subplots(1)
     x = np.arange(0, num_episodes)
@@ -137,7 +141,7 @@ def agent():
     ax.set_ylim(100, 1000)
 
     plt.show()
-    np.save('sarsa_steps.npy', np.array(all_steps))
+    np.save('sarsa_TDerror.npy', np.array(all_td_errors))
 
 if __name__ == '__main__':
     agent()

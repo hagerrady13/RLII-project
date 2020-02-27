@@ -21,16 +21,6 @@ matplotlib.style.use('ggplot')
 
 env = CliffWalkingEnv()
 
-num_tilings = 4
-step_size = 0.5/num_tilings
-
-# def mytiles(x):
-#   return tiles(2048, num_tilings, [x])
-#
-# def convert_state(state, action=None, env_size=env.observation_space.n):
-#     indices = mytiles(state)
-#     return np.array(indices)
-
 def convert_state(state, env_size=env.observation_space.n):
     x_s = np.zeros(env_size)
     x_s[state] = 1

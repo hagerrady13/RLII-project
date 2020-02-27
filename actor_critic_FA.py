@@ -9,7 +9,6 @@ import gym
 from envs.mountain_car import Environment as mc_env
 from envs.mc_tilecoder import MountainCarTileCoder
 import itertools
-import plotting
 
 matplotlib.style.use('ggplot')
 
@@ -25,7 +24,7 @@ class ActorCritic():
         self.num_tiles = 8
 
         self.actor_step_size = 0.5/self.num_tilings
-        self.critic_step_size = 1/self.num_tilings
+        self.critic_step_size = 1.0/self.num_tilings
 
         self.rand_generator = np.random.RandomState(seed)
 
@@ -75,16 +74,18 @@ class ActorCritic():
 
 def agent():
     num_episodes = 500
-    gamma = 1.0
+    gamma = 0.99
     n_runs = 10
 
     all_rewards = []
     all_steps = []
+    all_td_errors = []
 
     for run in range(n_runs):
         print("Run: ", run)
         episodic_reward = np.zeros(num_episodes)
         episodic_lengths = np.zeros(num_episodes)
+        episodic_TDerror = np.zeros(num_episodes)
 
         seed = 999 * run
         np.random.seed(seed)
@@ -102,8 +103,7 @@ def agent():
 
                 reward, next_state, done = env.env_step(action)
 
-                episodic_reward[i_episode] += reward
-                episodic_lengths[i_episode] += 1
+
 
                 if done:
                     td_target = reward
@@ -112,6 +112,10 @@ def agent():
                     td_target = reward + gamma * next_value
 
                 td_error = td_target - current_value
+
+                episodic_reward[i_episode] += reward
+                episodic_lengths[i_episode] += 1
+                episodic_TDerror[i_episode] += td_error
 
                 actor_critic.backward(td_error, state)
 
@@ -124,6 +128,7 @@ def agent():
 
         all_rewards.append(episodic_reward)
         all_steps.append(episodic_lengths)
+        all_td_errors.append(episodic_TDerror)
 
     fig, ax = plt.subplots(1)
     x = np.arange(0, num_episodes)
@@ -141,7 +146,7 @@ def agent():
 
     plt.show()
 
-    np.save('ac_steps.npy', np.array(all_steps))
+    np.save('ac_TDerror.npy', np.array(all_td_errors))
 
 if __name__ == '__main__':
     agent()
