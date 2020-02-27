@@ -13,28 +13,52 @@ import plotting
 
 matplotlib.style.use('ggplot')
 
-seed = 99
-rand_generator = np.random.RandomState(seed)
-
 env = mc_env()
 
-tile_coder = MountainCarTileCoder(iht_size=4096, num_tilings=8, num_tiles=8)
-
-def convert_state(state):
-    position, velocity = state
-    tiles = tile_coder.get_tiles(position=position, velocity=velocity)
-    return tiles
-
-class Actor():
-    def __init__(self, n_features):
-
-        self.weights = np.zeros([env.action_count, n_features])
-        self.step_size = 0.1/tile_coder.num_tilings
+class ActorCritic():
+    def __init__(self, seed):
 
         self.actions = [0, 1, 2]
+        self.num_actions = len(self.actions)
+        self.iht_size = 4096
+        self.num_tilings = 8
+        self.num_tiles = 8
 
-    def compute_softmax(self, active_tiles):
-        state_action_preferences = self.weights[:, active_tiles].sum(axis=1)
+        self.actor_step_size = 0.5/self.num_tilings
+        self.critic_step_size = 1/self.num_tilings
+
+        self.rand_generator = np.random.RandomState(seed)
+
+        self.tile_coder = MountainCarTileCoder(iht_size=self.iht_size , num_tilings=self.num_tilings, num_tiles=self.num_tiles)
+        self.actor_weights = np.zeros([self.num_actions, self.iht_size])
+        self.critic_weights = np.zeros(self.iht_size)
+
+    def forward(self, x_s):
+        active_tiles = self.__convert_state(x_s)
+        self.action_probs = self.__compute_softmax(active_tiles)
+        self.action = self.rand_generator.choice(self.num_actions, p=self.action_probs)
+
+        return self.action, self.critic_weights[active_tiles].sum()
+
+    def backward(self, td_error, x_s):
+        # tile coder derivative is 1 in case of active tiles, 0 otherwise
+        current_tiles = self.__convert_state(x_s)
+        # update critic
+        self.critic_weights[current_tiles] += self.critic_step_size * td_error
+
+        # update actor
+        for a in self.actions:
+            if a == self.action:
+                self.actor_weights[a][current_tiles] += self.actor_step_size * td_error * (1 - self.action_probs[a])
+            else:
+                self.actor_weights[a][current_tiles] += self.actor_step_size * td_error * (0 - self.action_probs[a])
+
+    def get_critic(self, x_s):
+        active_tiles = self.__convert_state(x_s)
+        return self.critic_weights[active_tiles].sum()
+
+    def __compute_softmax(self, active_tiles):
+        state_action_preferences = self.actor_weights[:, active_tiles].sum(axis=1)
         c = np.max(state_action_preferences)
 
         numerator = np.exp(state_action_preferences - c)
@@ -44,86 +68,80 @@ class Actor():
 
         return softmax_prob
 
-    def forward(self, x_s):
-        active_tiles = convert_state(x_s)
-        self.action_probs = self.compute_softmax(active_tiles)
-        self.action = rand_generator.choice(env.action_count, p=self.action_probs)
-
-        return self.action
-
-    def backward(self, td_error, x_s):
-        # tile coder derivative is 1 in case of active tiles, 0 otherwise
-        current_tiles = convert_state(x_s)
-        for a in self.actions:
-            if a == self.action:
-                self.weights[a][current_tiles] += self.step_size * td_error * (1 - self.action_probs[a])
-            else:
-                self.weights[a][current_tiles] += self.step_size * td_error * (0 - self.action_probs[a])
-
-class Critic():
-    def __init__(self, n_features):
-        self.weights = np.zeros(n_features)
-        self.step_size = 1/tile_coder.num_tilings
-
-    def forward(self, x_s):
-        active_tiles = convert_state(x_s)
-        return self.weights[active_tiles]
-
-    def backward(self, td_error, x_s):
-        current_tiles = convert_state(x_s)
-        self.weights[current_tiles] += self.step_size * td_error
-
+    def __convert_state(self, state):
+        position, velocity = state
+        tiles = self.tile_coder.get_tiles(position=position, velocity=velocity)
+        return tiles
 
 def agent():
     num_episodes = 500
     gamma = 1.0
+    n_runs = 10
 
-    episodic_reward = np.zeros(num_episodes)
+    all_rewards = []
+    all_steps = []
 
-    actor = Actor(tile_coder.iht_size)
-    critic = Critic(tile_coder.iht_size)
+    for run in range(n_runs):
+        print("Run: ", run)
+        episodic_reward = np.zeros(num_episodes)
+        episodic_lengths = np.zeros(num_episodes)
 
-    stats = plotting.EpisodeStats(
-        episode_lengths=np.zeros(num_episodes),
-        episode_rewards=np.zeros(num_episodes))
+        seed = 999 * run
+        np.random.seed(seed)
 
-    env.env_init()
+        actor_critic = ActorCritic(seed)
+        env.env_init()
 
-    for i_episode in range(num_episodes):
+        for i_episode in range(num_episodes):
 
-        state = env.env_start()
+            state = env.env_start()
 
-        for t in itertools.count():
-            # Take a step
-            action = actor.forward(state)
+            for t in itertools.count():
+                # Take a step
+                action, current_value = actor_critic.forward(state)
 
-            reward, next_state, done = env.env_step(action)
+                reward, next_state, done = env.env_step(action)
 
-            stats.episode_rewards[i_episode] += reward
-            stats.episode_lengths[i_episode] = t
+                episodic_reward[i_episode] += reward
+                episodic_lengths[i_episode] += 1
 
-            if done:
-                value_next = critic.forward(state)*0
-            else:
-                value_next = critic.forward(next_state)
+                if done:
+                    td_target = reward
+                else:
+                    next_value = actor_critic.get_critic(next_state)
+                    td_target = reward + gamma * next_value
 
-            td_target = reward + (gamma * value_next.sum())
-            td_error = td_target - critic.forward(state).sum()
+                td_error = td_target - current_value
 
-            critic.backward(td_error, state)
-            actor.backward(td_error, state)
+                actor_critic.backward(td_error, state)
 
-            episodic_reward[i_episode] += reward
-            state = next_state
+                episodic_reward[i_episode] += reward
 
-            if done:
-                break
-        # print(t, episodic_reward[i_episode])
+                state = next_state
 
-    # plt.plot(np.arange(0, num_episodes), episodic_reward)
-    print(episodic_reward)
-    # plt.show()
-    plotting.plot_episode_stats(stats, smoothing_window=10)
+                if done:
+                    break
+
+        all_rewards.append(episodic_reward)
+        all_steps.append(episodic_lengths)
+
+    fig, ax = plt.subplots(1)
+    x = np.arange(0, num_episodes)
+
+    mean_steps = np.mean(all_steps, axis=0)
+    std_steps = np.std(all_steps, axis=0)/np.sqrt(n_runs)
+    ax.plot(x, mean_steps, lw=1, color='blue' , label='Actor-Critic')
+    ax.fill_between(x, mean_steps - std_steps , mean_steps + std_steps, facecolor='blue', alpha=0.2)
+
+    ax.set_title("Actor-Critic on Montain Car")
+    ax.set_ylabel("Steps per episode")
+    ax.set_xlabel("Episode")
+    ax.legend(loc = 'best')
+    ax.set_ylim(100, 1000)
+
+    plt.show()
+
+    np.save('ac_steps.npy', np.array(all_steps))
 
 if __name__ == '__main__':
     agent()
