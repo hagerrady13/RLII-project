@@ -15,7 +15,7 @@ matplotlib.style.use('ggplot')
 env = mc_env()
 
 class ActorCritic():
-    def __init__(self, seed, actor_step_size=0.5, critic_step_size=1.0):
+    def __init__(self, seed, actor_step_size, critic_step_size):
 
         self.actions = [0, 1, 2]
         self.num_actions = len(self.actions)
@@ -74,82 +74,82 @@ class ActorCritic():
         return tiles
 
 def agent():
-    num_episodes = 500
+    num_episodes = 50
     gamma = 1.0
     n_runs = 100
 
     # alpha
     # alpha_actor = np.arange(0.1, 1.5, 0.1)
     # alpha_critic = np.arange(0.1, 2.0, 0.1)
-    # actor_hyper_parameters = np.arange(0.1, 1.5, 0.1)
-    # critic_hyper_parameters = np.arange(0.1, 2.0, 0.1)
+    actor_hyper_parameters = np.arange(0.1, 1.6, 0.1)
+    critic_hyper_parameters = np.arange(0.1, 2.0, 0.1)
     run_means = []
     run_stds = []
     alpha_actor = []
     alpha_critic = []
 
-    # for param_1 in actor_hyper_parameters:
-        # for param_2 in critic_hyper_parameters:
-    all_rewards = []
-    all_steps = []
-    all_td_errors = []
-    for run in range(n_runs):
-        print("Run: ", run)
-        episodic_reward = np.zeros(num_episodes)
-        episodic_lengths = np.zeros(num_episodes)
-        episodic_TDerror = np.zeros(num_episodes)
+    for param_1 in actor_hyper_parameters:
+        for param_2 in critic_hyper_parameters:
+            all_rewards = []
+            all_steps = []
+            all_td_errors = []
+            for run in range(n_runs):
+                print("Run: ", run, param_1, param_2)
+                episodic_reward = np.zeros(num_episodes)
+                episodic_lengths = np.zeros(num_episodes)
+                episodic_TDerror = np.zeros(num_episodes)
 
-        seed = 999 * run
-        np.random.seed(seed)
+                seed = 999 * run
+                np.random.seed(seed)
 
-        actor_critic = ActorCritic(seed=seed)
-        env.env_init()
+                actor_critic = ActorCritic(seed=seed, actor_step_size=param_1, critic_step_size=param_2)
+                env.env_init()
 
-        for i_episode in range(num_episodes):
+                for i_episode in range(num_episodes):
 
-            state = env.env_start()
+                    state = env.env_start()
 
-            for t in range(1, 2000):
-                # print(t, i_episode)
-                # Take a step
-                action, current_value = actor_critic.forward(state)
+                    for t in range(1, 15000):
+                        # print(t, i_episode)
+                        # Take a step
+                        action, current_value = actor_critic.forward(state)
 
-                reward, next_state, done = env.env_step(action)
+                        reward, next_state, done = env.env_step(action)
 
-                if done:
-                    td_target = reward
-                else:
-                    next_value = actor_critic.get_critic(next_state)
-                    td_target = reward + gamma * next_value
+                        if done:
+                            td_target = reward
+                        else:
+                            next_value = actor_critic.get_critic(next_state)
+                            td_target = reward + gamma * next_value
 
-                td_error = td_target - current_value
+                        td_error = td_target - current_value
 
-                episodic_reward[i_episode] += reward
-                episodic_lengths[i_episode] += 1
-                episodic_TDerror[i_episode] += td_error
+                        episodic_reward[i_episode] += reward
+                        episodic_lengths[i_episode] += 1
+                        # episodic_TDerror[i_episode] += td_error
 
-                actor_critic.backward(td_error, state)
+                        actor_critic.backward(td_error, state)
 
-                episodic_reward[i_episode] += reward
+                        episodic_reward[i_episode] += reward
 
-                state = next_state
+                        state = next_state
 
-                if done:
-                    break
+                        if done:
+                            break
 
-        all_rewards.append(episodic_reward)
-        all_steps.append(episodic_lengths)
-        all_td_errors.append(episodic_TDerror)
+                all_rewards.append(episodic_reward)
+                all_steps.append(episodic_lengths)
+                # all_td_errors.append(episodic_TDerror)
 
-            # run_means.append(np.mean(all_steps))
-            # run_stds.append(np.std(all_steps)/np.sqrt(n_runs))
-            # alpha_actor.append(param_1)
-            # alpha_critic.append(param_2)
+            run_means.append(np.mean(all_steps))
+            run_stds.append(np.std(all_steps)/np.sqrt(n_runs))
+            alpha_actor.append(param_1)
+            alpha_critic.append(param_2)
 
-    # print(run_means)
-    # print(run_stds)
-    # print(len(alpha_actor))
-    # print(len(alpha_critic))
+    print(run_means)
+    print(run_stds)
+    print(len(alpha_actor))
+    print(len(alpha_critic))
     # fig, ax = plt.subplots(1)
     # x = hyper_parameters
     # # x = np.arange(0, num_episodes)
@@ -167,13 +167,10 @@ def agent():
 
     # plt.show()
 
-    np.save('AC_learning_rate.npy', np.array(all_steps))
-    np.save('AC_tderror.npy', np.array(all_td_errors))
-
-    # np.save('alpha_critic.npy', np.array(alpha_critic))
-    # np.save('alpha_actor.npy', np.array(alpha_actor))
-    # np.save('ac_param_study_means.npy', np.array(run_means))
-    # np.save('ac_param_study_stds.npy', np.array(run_stds))
+    np.save('alpha_critic_2.npy', np.array(alpha_critic))
+    np.save('alpha_actor_2.npy', np.array(alpha_actor))
+    np.save('ac_param_study_means_2.npy', np.array(run_means))
+    np.save('ac_param_study_stds_2.npy', np.array(run_stds))
 
 if __name__ == '__main__':
     agent()
