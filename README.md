@@ -1,24 +1,7 @@
-# RL_2_project
+# A study on Policy gradient methods vs. action-value based methods
 
-Actor-Critic:
-- Try different step_sizes, 100 runs: 0.9 actor, 1.8 critic
+* This is part of Reinforcement Learning II course project, by Rich sutton, winter 2020.
 
-SARSA:
-- Try different step_sizes, 100 runs: 1.4 is the best with no exploration
-- Try different epsilon: the lower the exploration, the better. best eps=0.0
+This project analyzes and compares action-value based methods vs. policy gradient methods, in a control problem. The project suggests that policy gradient methods should learn faster than action-value based methods under function approximation. More specifically, one-step Sarsa is compared with one-step actor-critic in the Mountain Car environment, where the empirical results were consistent with the original hypothesis.
 
-To compare speed:
-- First 50 episodes over 100 runs: AC is better
-
-To compare performance:
-- 500 episodes of 100 runs: better at the beginning but same at end
-- Compare TD error? they follow same dist. since they are both samples of the advantage function
-- What about discounting/gamma? part of problem
-- How to choose best alpha & epsilon at the same time?
-
-Something like 12.5?
-
-1)
-Environment
-Agent
-Experiment
+![alt text](https://github.com/hagerrady13/RLII-project/outputs/ac_vs_sarsa_lr_2.pdf "Learning Rate")

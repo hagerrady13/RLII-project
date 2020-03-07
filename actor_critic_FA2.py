@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-import gym
+
 from envs.mountain_car import Environment as mc_env
 from envs.mc_tilecoder import MountainCarTileCoder
 import itertools
@@ -81,8 +81,8 @@ def agent():
     # alpha
     # alpha_actor = np.arange(0.1, 1.5, 0.1)
     # alpha_critic = np.arange(0.1, 2.0, 0.1)
-    actor_hyper_parameters = np.arange(0.1, 1.6, 0.1)
-    critic_hyper_parameters = np.arange(0.1, 2.0, 0.1)
+    actor_hyper_parameters = [1.5]#np.arange(0.1, 1.6, 0.1)
+    critic_hyper_parameters = [2**i for i in range(-8, 2)] #np.arange(0.1, 2.0, 0.1)
     run_means = []
     run_stds = []
     alpha_actor = []
@@ -109,7 +109,7 @@ def agent():
 
                     state = env.env_start()
 
-                    for t in range(1, 15000):
+                    for t in range(1, 2000):
                         # print(t, i_episode)
                         # Take a step
                         action, current_value = actor_critic.forward(state)
@@ -138,13 +138,11 @@ def agent():
                             break
 
                 all_rewards.append(episodic_reward)
-                all_steps.append(episodic_lengths)
+                all_steps.append(np.mean(episodic_lengths))
                 # all_td_errors.append(episodic_TDerror)
 
             run_means.append(np.mean(all_steps))
             run_stds.append(np.std(all_steps)/np.sqrt(n_runs))
-            alpha_actor.append(param_1)
-            alpha_critic.append(param_2)
 
     print(run_means)
     print(run_stds)
@@ -167,10 +165,10 @@ def agent():
 
     # plt.show()
 
-    np.save('alpha_critic_2.npy', np.array(alpha_critic))
-    np.save('alpha_actor_2.npy', np.array(alpha_actor))
-    np.save('ac_param_study_means_2.npy', np.array(run_means))
-    np.save('ac_param_study_stds_2.npy', np.array(run_stds))
+    # np.save('alpha_critic_2.npy', np.array(alpha_critic))
+    # np.save('alpha_actor_2.npy', np.array(alpha_actor))
+    np.save('outputs/ac_param_study_means_1.5.npy', np.array(run_means))
+    np.save('outputs/ac_param_study_stds_1.5.npy', np.array(run_stds))
 
 if __name__ == '__main__':
     agent()

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-import gym
+# import gym
 from envs.mountain_car import Environment as mc_env
 from envs.mc_tilecoder import MountainCarTileCoder
 import itertools
@@ -71,102 +71,108 @@ class SarsaAgent():
         return np.random.choice(ties)
 
 def agent():
-    num_episodes = 50
+    num_episodes = 500
     gamma = 1.0
-    n_runs = 100
+    n_runs = 10
 
     # alpha
     hyper_parameters_1 = [0.0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.07, 0.1, 0.2, 0.4, 0.5, 0.8]#np.arange(0.1, 2.0, 0.1) #EPS:[0.0, 0.01, 0.02, 0.04, 0.05, 0.1, 0.2, 0.5, 0.6, 0.7, 0.8, 0.85]
-    hyper_parameters_2 = [2**i for i in range(-10, 2)] #np.arange(0.1, 2.0, 0.1)
+    hyper_parameters_2 = [2]# [2**i for i in range(-8, 2)] #np.arange(0.1, 2.0, 0.1)
 
     run_means = []
     run_stds = []
     eps_values = []
     alpha_values = []
 
-    for param_1 in hyper_parameters_1:
-        for param_2 in hyper_parameters_2:
-            all_rewards = []
-            all_steps = []
-            all_td_errors = []
-            for run in range(n_runs):
-                print("Run: ", run, param_1, param_2)
-                episodic_reward = np.zeros(num_episodes)
-                episodic_lengths = np.zeros(num_episodes)
-                episodic_TDerror = np.zeros(num_episodes)
+    # for param_1 in hyper_parameters_1:
+    # for param_2 in hyper_parameters_2:
+    all_rewards = []
+    all_steps = []
+    all_td_errors = []
+    for run in range(n_runs):
+        print("Run: ", run)
+        episodic_reward = np.zeros(num_episodes)
+        episodic_lengths = np.zeros(num_episodes)
+        episodic_TDerror = np.zeros(num_episodes)
 
-                seed = 999 * run
-                np.random.seed(seed)
+        seed = 999 * run
+        np.random.seed(seed)
 
-                sarsa_agent = SarsaAgent(step_size=param_2, eps=param_1)
-                env.env_init()
+        sarsa_agent = SarsaAgent(step_size=0.5, eps=0.0)
+        env.env_init()
 
-                for i_episode in range(num_episodes):
-                    state = env.env_start()
+        for i_episode in range(num_episodes):
+            state = env.env_start()
 
-                    q_values = sarsa_agent.forward(state)
-                    action, action_value = sarsa_agent.epsilonGreedyPolicy(q_values)
+            q_values = sarsa_agent.forward(state)
+            action, action_value = sarsa_agent.epsilonGreedyPolicy(q_values)
 
-                    for t in range(1, 15000):
-                        # print(i_episode, t)
-                        # Take a step
-                        reward, next_state, done = env.env_step(action)
-                        if done:
-                            td_error = reward - sarsa_agent.forward(state)[action]
-                        else:
-                            q_values_next = sarsa_agent.forward(next_state)
-                            next_action, next_action_value = sarsa_agent.epsilonGreedyPolicy(q_values_next)
-                            td_error = reward + (gamma * next_action_value) - sarsa_agent.forward(state)[action]
+            for t in range(1, 5000):
+                # print(i_episode, t)
+                # Take a step
+                reward, next_state, done = env.env_step(action)
+                if done:
+                    td_error = reward - sarsa_agent.forward(state)[action]
+                else:
+                    q_values_next = sarsa_agent.forward(next_state)
+                    next_action, next_action_value = sarsa_agent.epsilonGreedyPolicy(q_values_next)
+                    td_error = reward + (gamma * next_action_value) - sarsa_agent.forward(state)[action]
 
-                        sarsa_agent.backward(td_error, state, action)
+                sarsa_agent.backward(td_error, state, action)
 
-                        state = next_state
-                        action = next_action
-                        # action_value = next_action_value
+                state = next_state
+                action = next_action
+                # action_value = next_action_value
 
-                        episodic_reward[i_episode] += reward
-                        episodic_lengths[i_episode] += 1
-                        episodic_TDerror[i_episode] += td_error
-                        # print(sarsa_agent.weights)
-                        if done:
-                            break
+                episodic_reward[i_episode] += reward
+                episodic_lengths[i_episode] += 1
+                episodic_TDerror[i_episode] += td_error
+                # print(sarsa_agent.weights)
+                if done:
+                    break
 
-                # all_rewards.append(episodic_reward)
-                # all_steps.append(episodic_lengths)
-                all_steps.append(np.mean(episodic_lengths))
-                # all_td_errors.append(episodic_TDerror)
-        run_means.append(np.mean(all_steps))
-        run_stds.append(np.std(all_steps)/np.sqrt(n_runs))
-        eps_values.append(param_1)
-        alpha_values.append(param_2)
-    # fig, ax = plt.subplots(1)
-    # x = hyper_parameters
-    # # x = np.arange(0, num_episodes)
-    #
-    # # mean_steps = np.mean(all_steps, axis=0)
-    # # std_steps = np.std(all_steps, axis=0)/np.sqrt(n_runs)
-    # run_means = np.array(run_means)
-    # # print(run_means)
-    # run_stds = np.array(run_stds)
-    # ax.plot(x, run_means, lw=1, color='red' , label='SARSA')
-    # ax.fill_between(x, run_means - run_stds , run_means + run_stds, facecolor='red', alpha=0.2)
-    #
-    # # ax.set_title("1-Step-SARSA on Montain Car")
-    # ax.set_ylabel("Steps per episode")
-    # ax.set_xlabel("Alpha x number of tilings (8)")
-    # # ax.legend(loc = 'best')
-    # ax.set_ylim(100, 800)
+        all_rewards.append(episodic_reward)
+        all_steps.append(episodic_lengths)
+        # all_steps.append(np.mean(episodic_lengths))
+        all_td_errors.append(episodic_TDerror)
+    # run_means.append(np.mean(all_steps))
+    # run_stds.append(np.std(all_steps)/np.sqrt(n_runs))
+            # eps_values.append(param_1)
+            # alpha_values.append(param_2)
+    # print(run_means)
+    # print(run_stds)
+    # exit(0)
+        np.save('outputs/sarsa_weights.npy', sarsa_agent.weights)
+        exit(0)
+    fig, ax = plt.subplots(1)
+    x = np.arange(0, num_episodes)
+
+    mean_steps = np.mean(all_steps, axis=0)
+    std_steps = np.std(all_steps, axis=0)/np.sqrt(n_runs)
+
+    # mean_steps = np.array(run_means)
+    # std_steps = np.array(run_stds)
+    # x = np.array(hyper_parameters_2)
+    # print(mean_steps, std_steps)
+    ax.plot(x, mean_steps, lw=1, color='red' , label='SARSA')
+    ax.fill_between(x, mean_steps - std_steps , mean_steps + std_steps, facecolor='red', alpha=0.2)
+    ax.set_title("1-Step-SARSA on Montain Car")
+    ax.set_ylabel("Steps per episode")
+    ax.set_xlabel("Alpha x number of tilings (8)")
+    ax.legend(loc = 'best')
+    ax.set_ylim(100, 800)
+    plt.show()
     # fig.savefig("SARSA_alpha_param_study.pdf", bbox_inches='tight')
     # np.save('SARSA_eps_means.npy', np.array(run_means))
     # np.save('SARSA_eps_stds.npy', np.array(run_stds))
-    np.save('alpha_sarsa.npy', np.array(alpha_values))
-    np.save('eps_sarsa.npy', np.array(eps_values))
-    np.save('sarsa_param_study_means.npy', np.array(run_means))
-    np.save('sarsa_param_study_stds.npy', np.array(run_stds))
+    # np.save('alpha_sarsa.npy', np.array(alpha_values))
+    # np.save('eps_sarsa.npy', np.array(eps_values))
+    # np.save('outputs/sarsa_param_study_means_0.0.npy', np.array(run_means))
+    # np.save('outputs/sarsa_param_study_stds_0.0.npy', np.array(run_stds))
 
-    # np.save('SARSA_learning_rate.npy', np.array(all_steps))
-
-    # np.save('SARSA_tderror.npy', np.array(all_td_errors))
+    # np.save('outputs/SARSA_learning_rate_0.1.npy', np.array(all_steps))
+    # np.save('outputs/SARSA_tderror_0.1.npy', np.array(all_td_errors))
+    # np.save('outputs/SARSA_rewards_0.1.npy', np.array(all_rewards))
 
 if __name__ == '__main__':
     agent()

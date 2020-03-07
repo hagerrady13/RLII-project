@@ -5,7 +5,6 @@ import torch.nn.functional as F
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-import gym
 from envs.mountain_car import Environment as mc_env
 from envs.mc_tilecoder import MountainCarTileCoder
 import itertools
@@ -76,7 +75,7 @@ class ActorCritic():
 def agent():
     num_episodes = 500
     gamma = 1.0
-    n_runs = 100
+    n_runs = 5
 
     # alpha
     # alpha_actor = np.arange(0.1, 1.5, 0.1)
@@ -109,7 +108,7 @@ def agent():
 
             state = env.env_start()
 
-            for t in range(1, 2000):
+            for t in range(1, 5000):
                 # print(t, i_episode)
                 # Take a step
                 action, current_value = actor_critic.forward(state)
@@ -145,35 +144,34 @@ def agent():
             # run_stds.append(np.std(all_steps)/np.sqrt(n_runs))
             # alpha_actor.append(param_1)
             # alpha_critic.append(param_2)
+        run_means.append(actor_critic.actor_weights)
+        run_stds.append(actor_critic.critic_weights)
 
-    # print(run_means)
-    # print(run_stds)
-    # print(len(alpha_actor))
-    # print(len(alpha_critic))
-    # fig, ax = plt.subplots(1)
-    # x = hyper_parameters
-    # # x = np.arange(0, num_episodes)
-    # print(run_means)
-    # run_means = np.array(run_means)
-    # run_stds = np.array(run_stds)
-    # ax.plot(x, run_means, lw=1, color='red' , label='SARSA')
-    # # ax.fill_between(x, run_means - run_stds , run_means + run_stds, facecolor='red', alpha=0.2)
-    #
-    # ax.set_title("Actor-Critic on Montain Car")
-    # ax.set_ylabel("Steps per episode")
-    # ax.set_xlabel("Episode")
-    # ax.legend(loc = 'best')
-    # ax.set_ylim(220, 800)
+    np.save('outputs/actor_weights.npy', np.mean(np.array(run_means)))
+    np.save('outputs/critic_weights.npy', np.mean(np.array(run_stds)))
+    exit(0)
 
-    # plt.show()
+    fig, ax = plt.subplots(1)
+    x = np.arange(0, num_episodes)
 
-    np.save('AC_learning_rate.npy', np.array(all_steps))
-    np.save('AC_tderror.npy', np.array(all_td_errors))
+    mean_steps = np.mean(all_steps, axis=0)
+    std_steps = np.std(all_steps, axis=0)/np.sqrt(n_runs)
 
-    # np.save('alpha_critic.npy', np.array(alpha_critic))
-    # np.save('alpha_actor.npy', np.array(alpha_actor))
-    # np.save('ac_param_study_means.npy', np.array(run_means))
-    # np.save('ac_param_study_stds.npy', np.array(run_stds))
+    print(mean_steps)
+    print(std_steps)
+
+    ax.plot(x, mean_steps, lw=1, color='red' , label='SARSA')
+    ax.fill_between(x, mean_steps - std_steps , mean_steps + std_steps, facecolor='red', alpha=0.2)
+    ax.set_title("1-Step-SARSA on Montain Car")
+    ax.set_ylabel("Steps per episode")
+    ax.set_xlabel("Alpha x number of tilings (8)")
+    ax.legend(loc = 'best')
+    ax.set_ylim(100, 800)
+    plt.show()
+
+    np.save('outputs/AC_learning_rate.npy', np.array(all_steps))
+    np.save('outputs/AC_tderror.npy', np.array(all_td_errors))
+    np.save('outputs/AC_rewards.npy', np.array(all_rewards))
 
 if __name__ == '__main__':
     agent()
