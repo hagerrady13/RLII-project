@@ -1,18 +1,8 @@
-# actor_critic: section 13.5
-"""
-visualize the policies by two of them
-1. run AC on RandomWalk
-2. Add tile coding on RandomWalk
-3. Check SARSA
-"""
-from env import RandomWalkEnv
+# actor_critic: section 13.5, not used in the project but was used to verify the tabular case of actor-critic
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 import matplotlib
-import matplotlib.pyplot as plt
-import gym
 from cliff_walking import CliffWalkingEnv
 import itertools
 import plotting
@@ -21,16 +11,17 @@ matplotlib.style.use('ggplot')
 
 env = CliffWalkingEnv()
 
+
 def convert_state(state, env_size=env.observation_space.n):
     x_s = np.zeros(env_size)
     x_s[state] = 1
     return x_s
 
+
 class Actor(nn.Module):
     def __init__(self, n_features):
         super().__init__()
 
-        # self.linear = nn.Linear(n_features, 16, bias=True).double()
         self.linear = nn.Linear(n_features, env.action_space.n, bias=False).double()
         self.linear.weight.data *=0
 
@@ -67,9 +58,7 @@ class Critic(nn.Module):
 
     def forward(self, x_s):
         x = torch.from_numpy(convert_state(x_s)).double()
-        # x = self.linear(x)
-        # x = torch.relu(x)
-        # state_value = np.ones(env_size) # W_v * x
+
         return self.head(x)
 
     def backward(self, target, pred):
@@ -79,16 +68,11 @@ class Critic(nn.Module):
         value_loss.backward(retain_graph=True)
         self.optim.step()
 
-        # for p in self.parameters():
-        #     p.grad = None
 
 def agent():
-    env_size = 6
     num_episodes = 500
-    time_steps = 10
     gamma = 1.0
 
-    # env = RandomWalkEnv(size=env_size)
     episodic_reward = np.zeros(num_episodes)
 
     env_size = env.observation_space.n
@@ -99,11 +83,6 @@ def agent():
     stats = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_episodes),
         episode_rewards=np.zeros(num_episodes))
-
-    # adam_1 = torch.optim.Adam(actor.parameters(), lr=0.01)
-    # adam_2 = torch.optim.Adam(critic.parameters(), lr=0.1)
-
-    # x_s = # output of a function approximator or one-hot vector of states or (simply number of the state? )in the tabular case
 
     for i_episode in range(num_episodes):
 
@@ -128,25 +107,9 @@ def agent():
             value_current = critic.forward(state)
             td_error = td_target - value_current
 
-            # actor.backward(action_probs[action], td_error)
             critic.backward(td_target, value_current)
 
-            # td_target = None
-            # value_current = None
-            # for param in critic.optim.param_groups:
-            #         print(param)
-            #         if param.grad:
-            #             param.grad.data.zero_()
             actor.backward(torch.gather(input=action_probs, dim=0, index=torch.tensor(action)), td_error)
-            # print(actor.linear.weight.data)
-
-            # critic.zero_grad()
-            # critic_loss = mseloss(td_target, value_current)
-            #
-            # critic_loss.backward()
-            # adam_2.step()
-            # print(actor.linear.weight.data)
-
             episodic_reward[i_episode] += reward
             state = next_state
 
@@ -154,10 +117,9 @@ def agent():
                 break
             print(t, done, episodic_reward[i_episode])
 
-    # plt.plot(np.arange(0, num_episodes), episodic_reward)
     print(episodic_reward)
-    # plt.show()
     plotting.plot_episode_stats(stats, smoothing_window=10)
+
 
 if __name__ == '__main__':
     agent()

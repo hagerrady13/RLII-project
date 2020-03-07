@@ -1,11 +1,5 @@
-# SARSA: section 6.1 / 10.1 (with function approximation)
-from env import RandomWalkEnv
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
+# SARSA: section 6.1 / 10.1 (with function approximation): not used in the project, and performance is not verified
 import numpy as np
-import gym
 import matplotlib
 import itertools
 
@@ -18,6 +12,7 @@ env = CliffWalkingEnv()
 
 Q = np.zeros((env.observation_space.n, env.action_space.n))
 
+
 def epsilonGreedyPolicy(state, eps=0.1, num_actions=env.action_space.n):
 
     action_probs = np.ones(num_actions, dtype = float) * eps / num_actions
@@ -26,6 +21,7 @@ def epsilonGreedyPolicy(state, eps=0.1, num_actions=env.action_space.n):
 
     action = np.random.choice(np.arange(len(action_probs)), p = action_probs)
     return action
+
 
 def agent():
     # env_size = 6
@@ -41,9 +37,6 @@ def agent():
     stats = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_episodes),
         episode_rewards=np.zeros(num_episodes))
-
-    # x_s = # output of a function approximator or one-hot vector of states or (simply number of the state? )in the tabular case
-    env_size = env.observation_space.n
 
     for i_episode in range(num_episodes):
 
