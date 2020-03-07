@@ -82,5 +82,5 @@ ax.set_xlabel(r'$\alpha$' +" x number of tilings(8) - $\log_{2}$ scale", color='
 ax.tick_params(axis='y', which='major', labelsize=5)
 # ax.tick_params(axis='both', which='minor', labelsize=7)
 ax.set_ylim(100, 1000)
-fig.savefig("outputs/best_both.pdf", bbox_inches='tight')
+fig.savefig("../outputs/best_both.pdf", bbox_inches='tight')
 plt.show()

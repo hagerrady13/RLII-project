@@ -104,7 +104,7 @@ def plot_lr(arr1, arr2, arr3=None, num_episodes=500, n_runs=100):
     ax.set_ylim(100, 500)
 
     plt.show()
-    fig.savefig("outputs/ac_vs_sarsa_lr_2.pdf", bbox_inches='tight')
+    fig.savefig("../outputs/ac_vs_sarsa_lr_2.png", bbox_inches='tight')
 
 
 def plot_td(arr1, arr2, arr3, num_episodes=500, n_runs=100):

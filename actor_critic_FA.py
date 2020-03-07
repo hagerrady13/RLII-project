@@ -78,10 +78,8 @@ def agent():
     n_runs = 5
 
     # alpha
-    # alpha_actor = np.arange(0.1, 1.5, 0.1)
-    # alpha_critic = np.arange(0.1, 2.0, 0.1)
-    # actor_hyper_parameters = np.arange(0.1, 1.5, 0.1)
-    # critic_hyper_parameters = np.arange(0.1, 2.0, 0.1)
+    actor_hyper_parameters = np.arange(0.1, 1.5, 0.1)
+    critic_hyper_parameters = np.arange(0.1, 2.0, 0.1)
     run_means = []
     run_stds = []
     alpha_actor = []

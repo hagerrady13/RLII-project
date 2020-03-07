@@ -2,6 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 actor_hyper_parameters = np.array([2**i for i in range(-8, 3)])
 critic_hyper_parameters = np.array([2**i for i in range(-8, 2)])
 
@@ -57,8 +58,7 @@ ax.text(x_axis[-6], means[-6, p2], str(x_axis[p2]), color=colors[p2],fontsize=9)
 for p2 in range(2, critic_hyper_parameters.shape[0]-2):
     ax.errorbar(x_axis, means[:, p2], yerr=stds[:, p2], label= r'$\alpha_{w}$='+str(x_axis[p2]), color=colors[p2])
     ax.text(x_axis[2], means[2, p2], str(x_axis[p2]), color=colors[p2], fontsize=9)
-    # ax.plot(x_axis, means[p2, :], lw=1, label= r'$\alpha$'+str(x_axis[p2]))
-    # ax.fill_between(x_axis, means[:, p2] - stds[:, p2] , means[:, p2] + stds[:, p2], alpha=0.2)
+
     print(p2, means[:, p2])
 
 ax.text(x_axis[4], 900 , r'$\alpha_{w}$' +" x number of tilings(8)\n $\log_{2}$ scale", fontsize=9, color='blue')
@@ -78,8 +78,6 @@ labels[8] = '$0$'
 labels[9] = '$0.58$'
 labels[10] = '$1$'
 ax.set_xticklabels(labels)
-# labels = [item.get_text() for item in ax.get_yticklabels()]
-# ax.set_yticklabels(labels, fontsize=9)
 
 ax.set_title("Mountain Car - one-step Actor-Critic \n " + r'$\alpha_{\theta}$: Actor step size, '+ r'$\alpha_{w}$: Critic step size ', fontsize=10)
 # ax.set_ylabel("Steps\nper\nepisode\n\nAveraged\nover\nﬁrst 50\nepisodes\nand\n100\nruns", color='black', rotation=0, labelpad=15, fontsize=9)
